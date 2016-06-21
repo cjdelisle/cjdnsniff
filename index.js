@@ -63,7 +63,8 @@ const connect = (cjdns, _callback) => {
                     return;
                 }
                 //console.log(portNum + ' in use');
-                next(cb);
+                // Needs to be async because the socket is "in use" until returning from the error.
+                setTimeout(() => { next(cb); }, 0);
             };
             onListening = cb;
             usock.bind(portNum, '::');
@@ -102,6 +103,14 @@ const decodeMessage = (bytes) => {
     return out;
 };
 
+const sendMessage = (msg, sock, cb) => {
+    const contentBytes = (msg.contentBenc) ? Bencode.encode(msg.contentBenc) : msg.contentBytes;
+    const routeHeaderBytes = Cjdnshdr.RouteHeader.serialize(msg.routeHeader);
+    const dataHeaderBytes = Cjdnshdr.DataHeader.serialize(msg.dataHeader);
+    const buf = Buffer.concat([routeHeaderBytes, dataHeaderBytes, contentBytes]);
+    sock.send(buf, 0, buf.length, 1, 'fc00::1', cb);
+};
+
 module.exports.sniffTraffic = (cjdns, contentType, callback) => {
     connect(cjdns, (err, usock) => {
         if (err) {
@@ -110,6 +119,7 @@ module.exports.sniffTraffic = (cjdns, contentType, callback) => {
         }
         const emitter = new EventEmitter();
         emitter._usock = usock;
+        emitter.send = (msg, cb) => { sendMessage(msg, usock, cb); };
         usock.on('message', (bytes, rinfo) => {
             try {
                 emitter.emit('message', decodeMessage(bytes));

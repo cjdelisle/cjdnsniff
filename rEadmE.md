@@ -2,7 +2,7 @@
 Library for sniffing and injecting cjdns traffic.
 
 **NOTE**: This requires cjdns v18 or higher. As of June 2016 this means you need to recompile
-cjdns using the subnode branch.
+cjdns using the crashey branch.
 
 ## API
 

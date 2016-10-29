@@ -1,14 +1,14 @@
 'use strict';
 const EventEmitter = require('events');
 const Udp = require('dgram');
-const Cjdnshdr = require('cjdnshdr');
+const Cjdnshdr = require('../cjdnshdr/index.js');
 const Bencode = require('bencode');
 const nThen = require('nthen');
 
-const connectWithNewPort = (cjdns, usock, callback) => {
+const connectWithNewPort = (cjdns, usock, contentTypeCode, callback) => {
     usock.on('listening', () => {
         const portNum = usock.address().port;
-        cjdns.UpperDistributor_registerHandler(portNum, 256, (err, ret) => {
+        cjdns.UpperDistributor_registerHandler(portNum, contentTypeCode, (err, ret) => {
             if (err) {
                 callback(err);
                 return;
@@ -24,7 +24,7 @@ const connectWithNewPort = (cjdns, usock, callback) => {
     usock.bind('::');
 };
 
-const connect = (cjdns, _callback) => {
+const connect = (cjdns, contentTypeCode, _callback) => {
     const usock = Udp.createSocket('udp6');
     const callback = (e, ret) => {
         const cb = _callback;
@@ -34,9 +34,12 @@ const connect = (cjdns, _callback) => {
     let onError;
     let onListening;
     usock.on('error',  (e) => {
-        onError ? onError(e) : (()=>{ callback(e); })()
+        if (onError) { return void onError(e); }
+        callback(e);
     });
-    usock.on('listening', () => { onListening && onListening(); });
+    usock.on('listening', () => {
+        if (onListening) { onListening(); }
+    });
     let portNum;
 
     cjdns.UpperDistributor_listHandlers(0, (err, ret) => {
@@ -55,7 +58,7 @@ const connect = (cjdns, _callback) => {
                 return;
             }
             const h = handlers.pop();
-            if (h.type !== 256) { next(cb); return; }
+            if (h.type !== contentTypeCode) { next(cb); return; }
             const portNum = h.udpPort;
             onError = (e) => {
                 if (e.code !== 'EADDRINUSE') {
@@ -81,7 +84,7 @@ const connect = (cjdns, _callback) => {
                     return;
                 }
                 // Ok no handler exists, bind a new port...
-                connectWithNewPort(cjdns, usock, callback);
+                connectWithNewPort(cjdns, usock, contentTypeCode, callback);
             }
         });
     });
@@ -90,14 +93,17 @@ const connect = (cjdns, _callback) => {
 const decodeMessage = (bytes) => {
     let x = 0;
     const routeHeaderBytes = bytes.slice(x, x += Cjdnshdr.RouteHeader.SIZE);
-    const dataHeaderBytes = bytes.slice(x, x += Cjdnshdr.DataHeader.SIZE);
+    const routeHeader = Cjdnshdr.RouteHeader.parse(routeHeaderBytes);
+    const dataHeaderBytes =
+        routeHeader.isCtrl ? null : bytes.slice(x, x += Cjdnshdr.DataHeader.SIZE);
+    const dataHeader = dataHeaderBytes ? Cjdnshdr.DataHeader.parse(dataHeaderBytes) : null;
     const dataBytes = bytes.slice(x);
     const out = {
-        routeHeader: Cjdnshdr.RouteHeader.parse(routeHeaderBytes),
-        dataHeader: Cjdnshdr.DataHeader.parse(dataHeaderBytes),
-        contentBytes: bytes
+        routeHeader: routeHeader,
+        dataHeader: dataHeader,
+        contentBytes: dataBytes
     };
-    if (out.dataHeader.contentType === 'CJDHT') {
+    if (out.dataHeader && out.dataHeader.contentType === 'CJDHT') {
         out.contentBenc = Bencode.decode(dataBytes);
     }
     return out;
@@ -112,7 +118,11 @@ const sendMessage = (msg, sock, cb) => {
 };
 
 module.exports.sniffTraffic = (cjdns, contentType, callback) => {
-    connect(cjdns, (err, usock) => {
+    const contentTypeCode = Cjdnshdr.ContentType.toNum(contentType);
+    if (!contentTypeCode) {
+        throw new Error("invalid content type [" + contentType + "]");
+    }
+    connect(cjdns, contentTypeCode, (err, usock) => {
         if (err) {
             callback(err);
             return;

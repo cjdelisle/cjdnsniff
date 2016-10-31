@@ -1,7 +1,7 @@
 'use strict';
 const EventEmitter = require('events');
 const Udp = require('dgram');
-const Cjdnshdr = require('../cjdnshdr/index.js');
+const Cjdnshdr = require('cjdnshdr');
 const Bencode = require('bencode');
 const nThen = require('nthen');
 

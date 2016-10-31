@@ -1,11 +1,11 @@
 {
     "name": "cjdnsniff",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Tools for dumping and injecting cjdns traffic",
     "repository": "https://github.com/cjdelisle/cjdnsniff",
     "license": "GPL-3.0+",
     "dependencies": {
-        "bencode": "~0.7.0",
+        "bencode": "~0.10.0",
         "cjdnsadmin": "~0.0.0",
         "cjdnshdr": "~0.2.1",
         "nthen": "~0.1.1",

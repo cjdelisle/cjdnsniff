@@ -2,6 +2,7 @@
 const EventEmitter = require('events');
 const Udp = require('dgram');
 const Cjdnshdr = require('cjdnshdr');
+const Cjdnsctrl = require('cjdnsctrl');
 const Bencode = require('bencode');
 const nThen = require('nthen');
 
@@ -105,14 +106,24 @@ const decodeMessage = (bytes) => {
     };
     if (out.dataHeader && out.dataHeader.contentType === 'CJDHT') {
         out.contentBenc = Bencode.decode(dataBytes);
+    } else if (routeHeader.isCtrl) {
+        out.content = Cjdnsctrl.parse(dataBytes);
     }
     return out;
 };
 
 const sendMessage = (msg, sock, cb) => {
-    const contentBytes = (msg.contentBenc) ? Bencode.encode(msg.contentBenc) : msg.contentBytes;
+    let contentBytes;
+    if (msg.dataHeader && msg.dataHeader.contentType === 'CJDHT' && msg.contentBenc) {
+        contentBytes = Bencode.encode(msg.contentBenc);
+    } else if (msg.routeHeader.isCtrl && msg.content) {
+        contentBytes = Cjdnsctrl.serialize(msg.content);
+    } else {
+        contentBytes = msg.contentBytes;
+    }
     const routeHeaderBytes = Cjdnshdr.RouteHeader.serialize(msg.routeHeader);
-    const dataHeaderBytes = Cjdnshdr.DataHeader.serialize(msg.dataHeader);
+    const dataHeaderBytes =
+        msg.dataHeader ? Cjdnshdr.DataHeader.serialize(msg.dataHeader) : new Buffer(0);
     const buf = Buffer.concat([routeHeaderBytes, dataHeaderBytes, contentBytes]);
     sock.send(buf, 0, buf.length, 1, 'fc00::1', cb);
 };

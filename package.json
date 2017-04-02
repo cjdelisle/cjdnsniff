@@ -1,23 +1,24 @@
 {
-    "name": "cjdnsniff",
-    "version": "0.2.4",
-    "description": "Tools for dumping and injecting cjdns traffic",
-    "repository": "https://github.com/cjdelisle/cjdnsniff",
-    "license": "GPL-3.0+",
-    "dependencies": {
-        "bencode": "~0.10.0",
-        "cjdnsadmin": "~0.0.0",
-        "cjdnshdr": "~0.2.1",
-        "nthen": "~0.1.1",
-        "cjdnskeys": "~0.1.1",
-        "cjdnsctrl": "~0.0.1",
-        "cjdnshdr": "~0.2.3"
-    },
-    "devDependencies": {
-        "jshint": "~2.9.4"
-    },
-    "scripts": {
-        "lint": "jshint --config .jshintrc --exclude-path .jshintignore .",
-        "test": "echo 'no tests'"
-    }
+  "name": "cjdnsniff",
+  "version": "0.2.5",
+  "description": "Tools for dumping and injecting cjdns traffic",
+  "repository": "https://github.com/cjdelisle/cjdnsniff",
+  "license": "GPL-3.0+",
+  "dependencies": {
+    "bencode": "~0.10.0",
+    "cjdnsadmin": "0.0.1",
+    "cjdnsctrl": "^0.0.4",
+    "cjdnshdr": "^0.2.5",
+    "cjdnskeys": "^0.1.4",
+    "nthen": "^0.1.4"
+  },
+  "devDependencies": {
+    "flow-bin": "^0.42.0",
+    "jshint": "~2.9.4"
+  },
+  "scripts": {
+    "lint": "jshint --config .jshintrc --exclude-path .jshintignore .",
+    "test": "echo 'no tests'",
+    "flow": "./node_modules/.bin/flow"
+  }
 }

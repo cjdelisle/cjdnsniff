@@ -1,3 +1,4 @@
+/*@flow*/
 'use strict';
 const EventEmitter = require('events');
 const Udp = require('dgram');
@@ -22,7 +23,7 @@ const connectWithNewPort = (cjdns, usock, contentTypeCode, callback) => {
             callback(undefined, usock);
         });
     });
-    usock.bind('::');
+    usock.bind(0, '::');
 };
 
 const connect = (cjdns, contentTypeCode, _callback) => {
@@ -102,7 +103,9 @@ const decodeMessage = (bytes) => {
     const out = {
         routeHeader: routeHeader,
         dataHeader: dataHeader,
-        contentBytes: dataBytes
+        contentBytes: dataBytes,
+        contentBenc: undefined,
+        content: undefined
     };
     if (out.dataHeader && out.dataHeader.contentType === 'CJDHT') {
         out.contentBenc = Bencode.decode(dataBytes);
@@ -128,19 +131,51 @@ const sendMessage = (msg, sock, cb) => {
     sock.send(buf, 0, buf.length, 1, 'fc00::1', cb);
 };
 
-module.exports.sniffTraffic = (cjdns, contentType, callback) => {
+/*::
+import type { Cjdnshdr_RouteHeader_t, Cjdnshdr_DataHeader_t } from 'cjdnshdr'
+import type { Cjdnsctrl_t, Cjdnsctrl_Ping_t, Cjdnsctrl_ErrMsg_t } from 'cjdnsctrl'
+declare class Cjdnsniff_GenericMsg {
+    routeHeader: Cjdnshdr_RouteHeader_t;
+    dataHeader: Cjdnshdr_DataHeader_t;
+    contentBytes: Buffer;
+};
+export type Cjdnsniff_GenericMsg_t = Cjdnsniff_GenericMsg;
+declare class Cjdnsniff_BencMsg extends Cjdnsniff_GenericMsg {
+    contentBenc: Object;
+};
+export type Cjdnsniff_BencMsg_t = Cjdnsniff_BencMsg;
+declare class Cjdnsniff_CtrlMsg extends Cjdnsniff_GenericMsg {
+    content: any;
+};
+export type Cjdnsniff_CtrlMsg_t = Cjdnsniff_CtrlMsg;
+export type Cjdnsniff_t = {
+    on: (event: string, listener: (any)=>void) => Cjdnsniff_t,
+    send: (Object, ()=>void) => void
+}
+*/
+
+module.exports.sniffTraffic = (
+    cjdns /*:Object*/,
+    contentType /*:string*/,
+    callback /*:(?Error, ?Cjdnsniff_t)=>void*/) =>
+{
     const contentTypeCode = Cjdnshdr.ContentType.toNum(contentType);
     if (!contentTypeCode) {
         throw new Error("invalid content type [" + contentType + "]");
     }
-    connect(cjdns, contentTypeCode, (err, usock) => {
+    connect(cjdns, contentTypeCode, (err, _usock) => {
         if (err) {
             callback(err);
             return;
         }
+        if (!_usock) { throw new Error("null error and no sock, should never happen"); }
+        const usock = _usock;
         const emitter = new EventEmitter();
-        emitter._usock = usock;
-        emitter.send = (msg, cb) => { sendMessage(msg, usock, cb); };
+        const out = {};
+        out.on = (name, cb) => { emitter.on(name, cb); return out; };
+        out._usock = usock;
+        out._emitter = emitter;
+        out.send = (msg, cb) => { sendMessage(msg, usock, cb); };
         usock.on('message', (bytes, rinfo) => {
             try {
                 emitter.emit('message', decodeMessage(bytes));
@@ -160,6 +195,6 @@ module.exports.sniffTraffic = (cjdns, contentType, callback) => {
                 process.exit(0);
             });
         });
-        callback(undefined, emitter);
+        callback(undefined, out);
     });
 };

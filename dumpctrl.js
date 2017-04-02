@@ -1,32 +1,44 @@
+/*@flow*/
 'use strict';
 const Cjdnsadmin = require('cjdnsadmin');
 const Cjdnsniff = require('./index');
 const Cjdnskeys = require('cjdnskeys');
 const Cjdnsctrl = require('cjdnsctrl');
 
+/*::
+import type { Cjdnsniff_CtrlMsg_t } from './index'
+import type { Cjdnsctrl_Ping_t, Cjdnsctrl_ErrMsg_t } from 'cjdnsctrl'
+*/
+
 Cjdnsadmin.connectWithAdminInfo((cjdns) => {
     Cjdnsniff.sniffTraffic(cjdns, 'CTRL', (err, ev) => {
-        if (err) { throw err; }
+        if (!ev) { throw err; }
         ev.on('error', (e) => { console.error(e); });
         ev.on('message', (msg) => {
-            msg.content = Cjdnsctrl.parse(msg.contentBytes);
-
+            /*::msg = (msg:Cjdnsniff_CtrlMsg_t);*/
             const pr = [];
             pr.push(msg.routeHeader.isIncoming ? '>' : '<');
             pr.push(msg.routeHeader.switchHeader.label);
             pr.push(msg.content.type);
-            if (/P[IO]NG/.test(msg.content.type)) {
-                pr.push('v' + msg.content.version);
-            }
-            if (/KEYP[IO]NG/.test(msg.content.type)) {
-                pr.push(msg.content.key);
-            }
             if (msg.content.type === 'ERROR') {
-                pr.push(msg.content.errType);
-                pr.push('label_at_err_node:');
-                pr.push(msg.content.switchHeader.label);
-                pr.push('nonce:');
-                pr.push(msg.content.nonce);
+                const content = (msg.content/*:Cjdnsctrl_ErrMsg_t*/);
+                pr.push(content.errType);
+                console.log(content.switchHeader);
+                if (content.switchHeader) {
+                    pr.push('label_at_err_node:', content.switchHeader.label);
+                }
+                if (content.nonce) {
+                    pr.push('nonce:', content.nonce);
+                }
+                pr.push(content.additional.toString('hex'));
+            } else {
+                const content = (msg.content/*:Cjdnsctrl_Ping_t*/);
+                if (content.type in ['PING', 'PONG']) {
+                    pr.push('v' + content.version);
+                }
+                if (content.type in ['KEYPING', 'KEYPONG']) {
+                    pr.push(content.key);
+                }
             }
             console.log(pr.join(' '));
         });

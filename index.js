@@ -115,7 +115,7 @@ const decodeMessage = (bytes) => {
     return out;
 };
 
-const sendMessage = (msg, sock, cb) => {
+const sendMessage = (msg, sock, dest, cb) => {
     let contentBytes;
     if (msg.dataHeader && msg.dataHeader.contentType === 'CJDHT' && msg.contentBenc) {
         contentBytes = Bencode.encode(msg.contentBenc);
@@ -128,7 +128,7 @@ const sendMessage = (msg, sock, cb) => {
     const dataHeaderBytes =
         msg.dataHeader ? Cjdnshdr.DataHeader.serialize(msg.dataHeader) : new Buffer(0);
     const buf = Buffer.concat([routeHeaderBytes, dataHeaderBytes, contentBytes]);
-    sock.send(buf, 0, buf.length, 1, 'fc00::1', cb);
+    sock.send(buf, 0, buf.length, 1, dest, cb);
 };
 
 /*::
@@ -150,7 +150,7 @@ declare class Cjdnsniff_CtrlMsg extends Cjdnsniff_GenericMsg {
 export type Cjdnsniff_CtrlMsg_t = Cjdnsniff_CtrlMsg;
 export type Cjdnsniff_t = {
     on: (event: string, listener: (any)=>void) => Cjdnsniff_t,
-    send: (Object, ()=>void) => void
+    send: (Object, string, ()=>void) => void
 }
 */
 
@@ -175,7 +175,7 @@ module.exports.sniffTraffic = (
         out.on = (name, cb) => { emitter.on(name, cb); return out; };
         out._usock = usock;
         out._emitter = emitter;
-        out.send = (msg, cb) => { sendMessage(msg, usock, cb); };
+        out.send = (msg, dest, cb) => { sendMessage(msg, usock, dest, cb); };
         usock.on('message', (bytes, rinfo) => {
             try {
                 emitter.emit('message', decodeMessage(bytes));

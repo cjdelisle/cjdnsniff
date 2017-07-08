@@ -116,6 +116,10 @@ const decodeMessage = (bytes) => {
 };
 
 const sendMessage = (msg, sock, dest, cb) => {
+    // Optional 'dest' argument
+    if (typeof(dest) === 'function' && !cb) { cb = dest; }
+    if (typeof(dest) !== 'string') { dest = 'fc00::1'; }
+
     let contentBytes;
     if (msg.dataHeader && msg.dataHeader.contentType === 'CJDHT' && msg.contentBenc) {
         contentBytes = Bencode.encode(msg.contentBenc);

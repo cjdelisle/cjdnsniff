@@ -7,6 +7,8 @@ const Cjdnsctrl = require('cjdnsctrl');
 const Bencode = require('bencode');
 const nThen = require('nthen');
 
+const NOFUN = () => {};
+
 const connectWithNewPort = (cjdns, usock, contentTypeCode, callback) => {
     usock.on('listening', () => {
         const portNum = usock.address().port;
@@ -190,12 +192,19 @@ module.exports.sniffTraffic = (
         usock.on('error', (e) => {
             emitter.emit('error', e);
         });
+        out.disconnect = (cb) => {
+            cb = cb || NOFUN;
+            cjdns.UpperDistributor_unregisterHandler(usock.address().port, (err, ret) => {
+                if (err) { throw err; }
+                usock.close();
+                cb();
+            });
+        };
         let sigint = false;
         process.on('SIGINT', () => {
             if (sigint) { process.exit(100); }
             //console.error('Disconnecting...');
-            cjdns.UpperDistributor_unregisterHandler(usock.address().port, (err, ret) => {
-                if (err) { throw err; }
+            out.disconnect(() => {
                 process.exit(0);
             });
         });

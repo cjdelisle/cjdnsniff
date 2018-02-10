@@ -112,7 +112,13 @@ const decodeMessage = (bytes) => {
     if (out.dataHeader && out.dataHeader.contentType === 'CJDHT') {
         out.contentBenc = Bencode.decode(dataBytes);
     } else if (routeHeader.isCtrl) {
-        out.content = Cjdnsctrl.parse(dataBytes);
+        try {
+            out.content = Cjdnsctrl.parse(dataBytes);
+        } catch (e) {
+            out.content = {
+                error: e.message
+            };
+        }
     }
     return out;
 };

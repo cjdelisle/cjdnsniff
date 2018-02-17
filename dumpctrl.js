@@ -10,7 +10,12 @@ import type { Cjdnsniff_CtrlMsg_t } from './index'
 import type { Cjdnsctrl_Ping_t, Cjdnsctrl_ErrMsg_t } from 'cjdnsctrl'
 */
 
-Cjdnsadmin.connectWithAdminInfo((cjdns) => {
+Cjdnsadmin.connect((err, cjdns) => {
+    if (err) {
+        console.error(err.message);
+        return;
+    }
+    /*::if (!cjdns) { throw new Error(); }*/
     Cjdnsniff.sniffTraffic(cjdns, 'CTRL', (err, ev) => {
         if (!ev) { throw err; }
         ev.on('error', (e) => { console.error(e); });

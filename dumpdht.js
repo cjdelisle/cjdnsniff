@@ -8,7 +8,12 @@ const Cjdnskeys = require('cjdnskeys');
 import type { Cjdnsniff_BencMsg_t } from './index'
 */
 
-Cjdnsadmin.connectWithAdminInfo((cjdns) => {
+Cjdnsadmin.connect((err, cjdns) => {
+    if (err) {
+        console.error(err.message);
+        return;
+    }
+    /*::if (!cjdns) { throw new Error(); }*/
     Cjdnsniff.sniffTraffic(cjdns, 'CJDHT', (err, ev) => {
         if (!ev) { throw err; }
         ev.on('error', (e) => { console.error(e); });

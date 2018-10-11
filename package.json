@@ -1,6 +1,6 @@
 {
   "name": "cjdnsniff",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Tools for dumping and injecting cjdns traffic",
   "repository": "https://github.com/cjdelisle/cjdnsniff",
   "license": "GPL-3.0+",

@@ -106,6 +106,7 @@ const decodeMessage = (bytes) => {
         routeHeader: routeHeader,
         dataHeader: dataHeader,
         contentBytes: dataBytes,
+        rawBytes: bytes,
         contentBenc: undefined,
         content: undefined
     };
@@ -150,6 +151,7 @@ declare class Cjdnsniff_GenericMsg {
     routeHeader: Cjdnshdr_RouteHeader_t;
     dataHeader: Cjdnshdr_DataHeader_t;
     contentBytes: Buffer;
+    rawBytes: Buffer;
 };
 export type Cjdnsniff_GenericMsg_t = Cjdnsniff_GenericMsg;
 declare class Cjdnsniff_BencMsg extends Cjdnsniff_GenericMsg {

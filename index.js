@@ -83,7 +83,7 @@ const connect = (cjdns, contentTypeCode, _callback) => {
                 usock.address();
                 callback(undefined, usock);
             } catch (e) {
-                if (e.code !== 'EINVAL') {
+                if (e.code !== 'EINVAL' && e.code !== 'EBADF') {
                     callback(e);
                     return;
                 }
